@@ -59,12 +59,12 @@ O dashboard permite filtrar os dados por três critérios, com atualização em 
 | **CSS3** | Estilização responsiva e moderna |
 | **JavaScript (ES6)** | Lógica de filtros, agregação de dados e interatividade |
 | **Chart.js** | Biblioteca de gráficos dinâmicos e responsivos |
-
-
-### Opção 1: Acessar online 
-O dashboard está disponível em: https://felipekadozzo.github.io/dashboard-interativo/
 | **Font Awesome** | Ícones para melhor experiência visual |
 | **Git / GitHub** | Versionamento e hospedagem via GitHub Pages |
+
+
+### Acessar online 
+O dashboard está disponível em: https://felipekadozzo.github.io/dashboard-interativo/
 
 
 
