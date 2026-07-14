@@ -62,6 +62,7 @@ O dashboard permite filtrar os dados por três critérios, com atualização em 
 | **Font Awesome** | Ícones para melhor experiência visual |
 | **Git / GitHub** | Versionamento e hospedagem via GitHub Pages |
 
+---
 
 ### Acessar online 
 O dashboard está disponível em: https://felipekadozzo.github.io/dashboard-interativo/
