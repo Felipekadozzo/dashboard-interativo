@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Vendas Geely – 1º Trimestre</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #f4f7fc;
+            padding: 24px;
+        }
+        .dashboard {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+        /* cabeçalho */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+        .header h1 {
+            font-weight: 600;
+            font-size: 2rem;
+            color: #0b2b4a;
+            letter-spacing: -0.5px;
+        }
+        .header h1 i {
+            color: #2a7de1;
+            margin-right: 10px;
+        }
+        .filters {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+        .filters label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            color: #1e3a5f;
+        }
+        .filters select {
+            background: #edf2f7;
+            border: none;
+            padding: 6px 14px 6px 12px;
+            border-radius: 30px;
+            font-weight: 500;
+            color: #0b2b4a;
+            outline: none;
+            cursor: pointer;
+        }
+        .filters select:focus {
+            box-shadow: 0 0 0 2px #2a7de1;
+        }
+        /* KPIs */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 20px;
+            padding: 22px 18px;
+            box-shadow: 0 6px 18px rgba(0,20,50,0.05);
+            transition: 0.2s;
+            border-left: 5px solid #2a7de1;
+        }
+        .kpi-card:nth-child(2) { border-left-color: #f9a03f; }
+        .kpi-card:nth-child(3) { border-left-color: #28a745; }
+        .kpi-card:nth-child(4) { border-left-color: #dc3545; }
+        .kpi-card .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7a8f;
+            font-weight: 600;
+        }
+        .kpi-card .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #0b2b4a;
+            margin-top: 6px;
+        }
+        .kpi-card .sub {
+            font-size: 0.85rem;
+            color: #4a5b6e;
+            margin-top: 4px;
+        }
+        /* gráficos */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .chart-box {
+            background: white;
+            border-radius: 24px;
+            padding: 20px 20px 12px 20px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.03);
+        }
+        .chart-box h3 {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1e3a5f;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-box h3 i {
+            color: #2a7de1;
+        }
+        .chart-container {
+            position: relative;
+            height: 240px;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        .full-width .chart-container {
+            height: 200px;
+        }
+        .footer-note {
+            text-align: right;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #7a8a9e;
+            border-top: 1px solid #dce3ec;
+            padding-top: 18px;
+        }
+        @media (max-width: 760px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            .filters {
+                border-radius: 20px;
+                padding: 12px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+
+    <!-- HEADER + FILTROS -->
+    <div class="header">
+        <h1><i class="fas fa-car"></i> Geely · Vendas Trimestre 1</h1>
+        <div class="filters">
+            <label><i class="fas fa-store"></i> Loja
+                <select id="filtroLoja"><option value="Todas">Todas</option></select>
+            </label>
+            <label><i class="fas fa-palette"></i> Cor
+                <select id="filtroCor"><option value="Todas">Todas</option></select>
+            </label>
+            <label><i class="fas fa-user-tie"></i> Vendedor
+                <select id="filtroVendedor"><option value="Todos">Todos</option></select>
+            </label>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid" id="kpiContainer">
+        <div class="kpi-card"><div class="label"><i class="fas fa-dollar-sign" style="margin-right:4px;"></i> Faturamento</div><div class="value" id="kpiFaturamento">—</div><div class="sub">total</div></div>
+        <div class="kpi-card"><div class="label"><i class="fas fa-car"></i> Unidades</div><div class="value" id="kpiUnidades">—</div><div class="sub">vendidas</div></div>
+        <div class="kpi-card"><div class="label"><i class="fas fa-tag"></i> Ticket médio</div><div class="value" id="kpiTicket">—</div><div class="sub">por venda</div></div>
+        <div class="kpi-card"><div class="label"><i class="fas fa-people-group"></i> Vendedores ativos</div><div class="value" id="kpiVendedores">—</div><div class="sub">únicos</div></div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="charts-row">
+        <div class="chart-box">
+            <h3><i class="fas fa-chart-bar"></i> Vendas por Modelo</h3>
+            <div class="chart-container"><canvas id="chartModelo"></canvas></div>
+        </div>
+        <div class="chart-box">
+            <h3><i class="fas fa-chart-pie"></i> Vendas por Loja</h3>
+            <div class="chart-container"><canvas id="chartLoja"></canvas></div>
+        </div>
+    </div>
+    <div class="charts-row full-width">
+        <div class="chart-box">
+            <h3><i class="fas fa-chart-line"></i> Desempenho por Vendedor (faturamento)</h3>
+            <div class="chart-container"><canvas id="chartVendedor"></canvas></div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        <i class="fas fa-filter"></i> Filtros interativos • dados reais do trimestre
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ----- DADOS (extraídos do arquivo) -----
+        const rawData = [
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","JONAS ROBERTO LOPES NOGUEIRA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","JONAS ROBERTO LOPES NOGUEIRA","CINZA","GUARULHOS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","JONAS ROBERTO LOPES NOGUEIRA","BRANCO","PINDAMONHANGABA","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","MAURICIO DE ALMEIDA JUNIOR","PRETO","SAO CAETANO DO SUL","SP",225800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","PRATA","BAURU","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","PRATA","INDAIATUBA","SP",118990.0],
+            ["GEELY - CAMPINAS","EX5 PRO","JOAO WILLIAN VESCO","BRANCO","OURINHOS","SP",195800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","LUCAS HENRIQUE JACINTO MODESTO","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","CINZA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","JONAS ROBERTO LOPES NOGUEIRA","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","SUELEN PASSAGEM","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","CINZA","VINHEDO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","STEPHANY SOUZA DA SILVA GOMES","BRANCO","CARAPICUIBA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","PRATA","CAMPINAS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","SUELEN PASSAGEM","PRATA","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","MIRIAM MARTA DAMACENA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","MAURICIO DE ALMEIDA JUNIOR","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","LEONARDO FERRARI DE LUCCA","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CAMILA ZANOLLA DE SANTANA","CINZA","OSASCO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","MIRIAM MARTA DAMACENA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MAURICIO DE ALMEIDA JUNIOR","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","STEPHANY SOUZA DA SILVA GOMES","PRATA","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX5 MAX","WELLINGTON JOSE POSSATTI","PRETO","ITATIBA","SP",225800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","PRATA","OSASCO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","LEONARDO FERRARI DE LUCCA","PRATA","SAO PAULO","SP",225800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","PRATA","CAMPINAS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","SUELEN PASSAGEM","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","BRANCO","SUMARE","SP",119800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","CINZA","MOGI MIRIM","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","CINZA","BRAGANCA PAULISTA","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","PRATA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CLEITON LUCAS DOS SANTOS","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","PRATA","SUMARE","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CARLOS HENRIQUE ULIANA JUNIOR","PRETO","SAO PAULO","SP",215800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","SUELEN PASSAGEM","PRATA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","SUELEN PASSAGEM","PRATA","MARILIA","SP",121680.0],
+            ["GEELY - CAMPINAS","EX2 PRO","OSCAR ARGOLO FERRAZ","BRANCO","SAO JOAO DA BOA VISTA","SP",127890.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CAIO VINICIUS ALMEIDA SIQUEIRA","CINZA","OSASCO","SP",119000.0],
+            ["GEELY - JD EUROPA","EX2 PRO","GABRIEL GUIDA SCALIZE","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","BRANCO","SERRA NEGRA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX5 MAX","OSCAR ARGOLO FERRAZ","PRETO","VALINHOS","SP",218500.0],
+            ["GEELY - JD EUROPA","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","CINZA","ATIBAIA","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","JOAO WILLIAN VESCO","CINZA","SALTO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX5 PRO","LEANDRO DIAS LOPES","PRETO","CAMPINAS","SP",178310.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CLEITON LUCAS DOS SANTOS","BRANCO","OSASCO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","MAURICIO DE ALMEIDA JUNIOR","BRANCO","SAO JOAO DA BOA VISTA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","BRANCO","ITAPIRA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","OSCAR ARGOLO FERRAZ","PRATA","CAMPINAS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CARLOS ALBERTO DA SILVA JUNIOR","CINZA","OSASCO","SP",215800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","MATHEUS HENRIQUE VALENTE","PRATA","CAMPINAS","SP",225800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MATHEUS TORRES DE SOUZA","CINZA","SAO JOSE DOS CAMPOS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","SUELEN PASSAGEM","BRANCO","PRAIA GRANDE","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","LEONARDO FERRARI DE LUCCA","PRATA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 PRO","SUELEN PASSAGEM","PRATA","SAO PAULO","SP",179900.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","PRATA","VALINHOS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","MIRIAM MARTA DAMACENA","BRANCO","SAO JOSE DOS CAMPOS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","BRANCO","JUNDIAI","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEPHANY SOUZA DA SILVA GOMES","PRATA","SAO PAULO","SP",210000.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","MIRIAM MARTA DAMACENA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX5 PRO","MATHEUS HENRIQUE VALENTE","PRATA","INDAIATUBA","SP",179800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","MAURICIO DE ALMEIDA JUNIOR","BRANCO","SANTOS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","CINZA","VARGEM GRANDE PAULISTA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","JOAO WILLIAN VESCO","PRATA","SOROCABA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CAIO VINICIUS ALMEIDA SIQUEIRA","PRATA","SAO PAULO","SP",119900.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CARLOS HENRIQUE ULIANA JUNIOR","PRATA","EMBU DAS ARTES","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CLEITON LUCAS DOS SANTOS","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","STEFANY MARIA SILVA","BRANCO","SAO PAULO","SP",121532.9],
+            ["GEELY - GASTAO MATRIZ","EX5 PRO","MATHEUS HENRIQUE VALENTE","CINZA","INDAIATUBA","SP",179800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 PRO","CAMILA ZANOLLA DE SANTANA","CINZA","SAO PAULO","SP",179990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEPHANY SOUZA DA SILVA GOMES","PRATA","SAO PAULO","SP",228878.0],
+            ["GEELY - JD EUROPA","EX2 PRO","GABRIEL GUIDA SCALIZE","BRANCO","DIADEMA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","MATHEUS HENRIQUE VALENTE","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CLEITON LUCAS DOS SANTOS","PRATA","SAO PAULO","SP",225800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","MATHEUS HENRIQUE VALENTE","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEPHANY SOUZA DA SILVA GOMES","PRATA","SAO PAULO","SP",214800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","STEFANY MARIA SILVA","BRANCO","ATIBAIA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","OSCAR ARGOLO FERRAZ","BRANCO","VINHEDO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX5 MAX","RICARDO MARQUES DE FEO","CINZA","SAO PAULO","SP",214000.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","LEANDRO DIAS LOPES","BRANCO","INDAIATUBA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","MATHEUS HENRIQUE VALENTE","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","STEFANY MARIA SILVA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","BRANCO","VINHEDO","SP",124725.0],
+            ["GEELY - JD EUROPA","EX2 MAX","FRANCISCO MIRAS COESTAS DINIZ","PRATA","OSASCO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","JONAS ROBERTO LOPES NOGUEIRA","PRATA","INDAIATUBA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CAMILA ZANOLLA DE SANTANA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","DANIEL INNOCENCIO FINETTI","BRANCO","PAULINIA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","DANIEL INNOCENCIO FINETTI","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CAIO VINICIUS ALMEIDA SIQUEIRA","BRANCO","SAO PAULO","SP",117990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","JOAO WILLIAN VESCO","CINZA","JUNDIAI","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","MATHEUS HENRIQUE VALENTE","BRANCO","CAPIVARI","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","BRANCO","BRAGANCA PAULISTA","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","FRANCISCO MIRAS COESTAS DINIZ","BRANCO","BRAGANCA PAULISTA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","WELLINGTON JOSE POSSATTI","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","LEONARDO FERRARI DE LUCCA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","LEONARDO FERRARI DE LUCCA","BRANCO","GUARULHOS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CLEITON LUCAS DOS SANTOS","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","CAIO VINICIUS ALMEIDA SIQUEIRA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEFANY MARIA SILVA","CINZA","SAO PAULO","SP",215800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 PRO","DANIEL INNOCENCIO FINETTI","CINZA","PAULINIA","SP",179800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","RODRIGO MONTEAGUDO","BRANCO","ITATIBA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","SILMARA PESENTE GALLEGO","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","JOAO WILLIAN VESCO","BRANCO","CAMPINAS","SP",120152.0],
+            ["GEELY - CAMPINAS","EX5 MAX","JOAO WILLIAN VESCO","CINZA","AMERICANA","SP",221990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","WELLINGTON JOSE POSSATTI","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX5 MAX","LEANDRO DIAS LOPES","PRATA","MONTE MOR","SP",225800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MIRIAM MARTA DAMACENA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEFANY MARIA SILVA","CINZA","SAO PAULO","SP",211000.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEFANY MARIA SILVA","CINZA","SAO PAULO","SP",225800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","JONAS ROBERTO LOPES NOGUEIRA","PRETO","SAO PAULO","SP",215800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","WELLINGTON JOSE POSSATTI","PRATA","CAMPINAS","SP",215800.0],
+            ["GEELY - JD EUROPA","EX5 MAX","JONAS ROBERTO LOPES NOGUEIRA","CINZA","SAO PAULO","SP",230300.0],
+            ["GEELY - JD EUROPA","EX5 MAX","LEONARDO FERRARI DE LUCCA","CINZA","SAO PAULO","SP",230300.0],
+            ["GEELY - CAMPINAS","EX5 MAX","SILMARA PESENTE GALLEGO","PRETO","VINHEDO","SP",215800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","SILMARA PESENTE GALLEGO","CINZA","SUMARE","SP",215800.0],
+            ["GEELY - JD EUROPA","EX5 MAX","STEFANY MARIA SILVA","PRETO","SAO PAULO","SP",225000.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CLEITON LUCAS DOS SANTOS","CINZA","SAO PAULO","SP",215800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","GABRIEL GUIDA SCALIZE","PRETO","SAO PAULO","SP",225800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","JONAS ROBERTO LOPES NOGUEIRA","PRETO","SAO PAULO","SP",215800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","RODRIGO MONTEAGUDO","CINZA","CAMPINAS","SP",236088.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CARLOS HENRIQUE ULIANA JUNIOR","PRATA","SAO PAULO","SP",215800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","CARLOS ALBERTO DA SILVA JUNIOR","CINZA","SAO PAULO","SP",225800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","CLEITON LUCAS DOS SANTOS","PRATA","SAO PAULO","SP",215800.0],
+            ["GEELY - JD EUROPA","EX5 PRO","MIRIAM MARTA DAMACENA","CINZA","SAO PAULO","SP",176000.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","CINZA","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","VERDE PISTACHIO","PAULINIA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MATHEUS TORRES DE SOUZA","CINZA","SAO PAULO","SP",149112.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CLEITON LUCAS DOS SANTOS","VERDE PISTACHIO","MOGI MIRIM","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","LEONARDO FERRARI DE LUCCA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MATHEUS TORRES DE SOUZA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","MAIRIPORA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","CINZA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CLEITON LUCAS DOS SANTOS","VERDE PISTACHIO","OSASCO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","CINZA","AMERICANA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","BRAGANCA PAULISTA","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAIO VINICIUS ALMEIDA SIQUEIRA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","CINZA","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","CINZA","PAULINIA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MATHEUS TORRES DE SOUZA","VERDE PISTACHIO","SAO PAULO","SP",157800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","CINZA","JAGUARIUNA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","CINZA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","STEFANY MARIA SILVA","VERDE PISTACHIO","SAO PAULO","SP",149112.0],
+            ["GEELY - JD EUROPA","EX5 MAX","MATHEUS HENRIQUE VALENTE","PRATA","CAMPINAS","SP",225800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CARLOS ALBERTO DA SILVA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","CINZA","ARARAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CARLOS ALBERTO DA SILVA JUNIOR","CINZA","ITUPEVA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","VERDE PISTACHIO","GUARUJA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","VERDE PISTACHIO","TABOAO DA SERRA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","CINZA","INDAIATUBA","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CARLOS ALBERTO DA SILVA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CARLOS ALBERTO DA SILVA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","CINZA","HORTOLANDIA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","PRATA","SALTO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","PRATA","INDAIATUBA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","PRATA","INDAIATUBA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","CINZA","SANTA BARBARA D'OESTE","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","PRATA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","VERDE PISTACHIO","SAO SEBASTIAO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","PRATA","CORDEIROPOLIS","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CLEITON LUCAS DOS SANTOS","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","BRANCO","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","PRATA","INDAIATUBA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","VERDE PISTACHIO","MONTE ALEGRE DO SUL","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","STEFANY MARIA SILVA","PRATA","SAO PAULO","SP",149112.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","CINZA","ITAPIRA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX5 MAX","MIRIAM MARTA DAMACENA","CINZA","SAO PAULO","SP",225800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","LEONARDO FERRARI DE LUCCA","PRETO","SAO PAULO","SP",215800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","PRATA","INDAIATUBA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","CINZA","SAO PAULO","SP",148800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","WELLINGTON JOSE POSSATTI","VERDE PISTACHIO","ATIBAIA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","BRANCO","SAO PAULO","SP",158800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","VERDE PISTACHIO","NOVA ODESSA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","PRATA","VINHEDO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","PRATA","VINHEDO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","WELLINGTON JOSE POSSATTI","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","BRANCO","PIRACICABA","SP",127893.1],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","PRATA","CAMPINAS","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CARLOS ALBERTO DA SILVA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CARLOS ALBERTO DA SILVA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","LEONARDO FERRARI DE LUCCA","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CLEITON LUCAS DOS SANTOS","PRATA","SAO PAULO","SP",215800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAIO VINICIUS ALMEIDA SIQUEIRA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","PRATA","OSASCO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","CINZA","PAULINIA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","PRATA","JUNDIAI","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","RODRIGO MONTEAGUDO","PRATA","ESPIRITO SANTO DO PINHAL","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","FRANCISCO MIRAS COESTAS DINIZ","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","PRATA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","PRATA","SAO PAULO","SP",137370.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","LEONARDO FERRARI DE LUCCA","CINZA","SAO PAULO","SP",225800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","CARLOS HENRIQUE ULIANA JUNIOR","CINZA","JACAREI","SP",210000.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","BRANCO","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","OSCAR ARGOLO FERRAZ","BRANCO","MOGI MIRIM","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 MAX","DANIEL INNOCENCIO FINETTI","PRATA","VINHEDO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","LEANDRO DIAS LOPES","BRANCO","INDAIATUBA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX5 MAX","RODRIGO MONTEAGUDO","CINZA","VALINHOS","SP",225800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","LEANDRO DIAS LOPES","BRANCO","AMERICANA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","MATHEUS TORRES DE SOUZA","CINZA","SAO PAULO","SP",220000.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","MATHEUS TORRES DE SOUZA","PRETO","SAO PAULO","SP",213950.0],
+            ["GEELY - CAMPINAS","EX5 MAX","WELLINGTON JOSE POSSATTI","PRETO","SOROCABA","SP",210000.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MATHEUS TORRES DE SOUZA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","MATHEUS HENRIQUE VALENTE","BRANCO","SUMARE","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","BRANCO","INDAIATUBA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","MATHEUS HENRIQUE VALENTE","BRANCO","INDAIATUBA","SP",123800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","MIRIAM MARTA DAMACENA","PRATA","SAO JOSE DOS CAMPOS","SP",221800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","STEFANY MARIA SILVA","CINZA","SAO PAULO","SP",222800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","DANIEL INNOCENCIO FINETTI","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","CLEITON LUCAS DOS SANTOS","CINZA","VARGEM GRANDE PAULISTA","SP",225800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","PRATA","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","PRATA","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","WELLINGTON JOSE POSSATTI","PRATA","PAULINIA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","LEANDRO DIAS LOPES","BRANCO","JUNDIAI","SP",136800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","RODRIGO MONTEAGUDO","CINZA","SAO PAULO","SP",225800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","LEANDRO DIAS LOPES","VERDE PISTACHIO","PAULINIA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","SILMARA PESENTE GALLEGO","PRATA","SUMARE","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","LEANDRO DIAS LOPES","CINZA","SUMARE","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","FRANCISCO MIRAS COESTAS DINIZ","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","STEFANY MARIA SILVA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","BRANCO","CAMPINAS","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CAMILA ZANOLLA DE SANTANA","BRANCO","OSASCO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAMILA ZANOLLA DE SANTANA","VERDE PISTACHIO","SAO PAULO","SP",136800.02],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","STEFANY MARIA SILVA","BRANCO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CARLOS ALBERTO DA SILVA JUNIOR","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","CINZA","JACAREI","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","BRANCO","PAULINIA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","BRANCO","VINHEDO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","LEANDRO DIAS LOPES","CINZA","CAMPINAS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","STEFANY MARIA SILVA","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","CINZA","SUMARE","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MATHEUS TORRES DE SOUZA","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","PRATA","ARARAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","CINZA","VALINHOS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","JONAS ROBERTO LOPES NOGUEIRA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","CINZA","CAMPINAS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MATHEUS TORRES DE SOUZA","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX5 MAX","LEONARDO FERRARI DE LUCCA","PRATA","CARAPICUIBA","SP",225800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAMILA ZANOLLA DE SANTANA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","WELLINGTON JOSE POSSATTI","PRATA","MOGI-GUACU","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","CINZA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","STEFANY MARIA SILVA","BRANCO","SAO BERNARDO DO CAMPO","SP",122680.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","PRATA","MAIRIPORA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","BRANCO","AGUAS DE LINDOIA","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CLEITON LUCAS DOS SANTOS","VERDE PISTACHIO","SAO JOSE DOS CAMPOS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","BRANCO","CAMPINAS","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","RODRIGO MONTEAGUDO","VERDE PISTACHIO","JAGUARIUNA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","PRATA","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","CINZA","AMERICANA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","OSCAR ARGOLO FERRAZ","CINZA","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","OSCAR ARGOLO FERRAZ","PRATA","VALINHOS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","OSCAR ARGOLO FERRAZ","CINZA","PEDREIRA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","CINZA","PAULINIA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","BRANCO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MAURICIO DE ALMEIDA JUNIOR","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MAURICIO DE ALMEIDA JUNIOR","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","CINZA","LOUVEIRA","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAIO VINICIUS ALMEIDA SIQUEIRA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","VERDE PISTACHIO","ITAPIRA","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","PRATA","VALINHOS","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","BRANCO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","BRANCO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CARLOS ALBERTO DA SILVA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","CARLOS HENRIQUE ULIANA JUNIOR","PRETO","SAO JOSE DOS CAMPOS","SP",213700.0],
+            ["GEELY - CAMPINAS","EX2 PRO","RODRIGO MONTEAGUDO","CINZA","VALINHOS","SP",125408.0],
+            ["GEELY - CAMPINAS","EX2 MAX","MATHEUS HENRIQUE VALENTE","BRANCO","AMERICANA","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","STEFANY MARIA SILVA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MATHEUS TORRES DE SOUZA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CLEITON LUCAS DOS SANTOS","VERDE PISTACHIO","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CAIO VINICIUS ALMEIDA SIQUEIRA","CINZA","SAO PAULO","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CLEITON LUCAS DOS SANTOS","VERDE PISTACHIO","SAO PAULO","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","CINZA","PIRACICABA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","WELLINGTON JOSE POSSATTI","VERDE PISTACHIO","VINHEDO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","CINZA","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX5 MAX","CAMILA ZANOLLA DE SANTANA","CINZA","JUNDIAI","SP",211800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","OSCAR ARGOLO FERRAZ","CINZA","HORTOLANDIA","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","PRATA","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","CINZA","CAMPINAS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CLEITON LUCAS DOS SANTOS","BRANCO","SAO PAULO","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MIRIAM MARTA DAMACENA","VERDE PISTACHIO","OSASCO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","LEONARDO FERRARI DE LUCCA","PRATA","BARUERI","SP",119990.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MATHEUS TORRES DE SOUZA","BRANCO","COTIA","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAIO VINICIUS ALMEIDA SIQUEIRA","BRANCO","SAO PAULO","SP",136800.0],
+            ["GEELY - GASTAO MATRIZ","EX5 MAX","MAURICIO DE ALMEIDA JUNIOR","PRETO","SAO PAULO","SP",211800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","STEFANY MARIA SILVA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","OSCAR ARGOLO FERRAZ","VERDE PISTACHIO","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","MAURICIO DE ALMEIDA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","BRANCO","ATIBAIA","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","PRATA","CAMPINAS","SP",136800.0],
+            ["GEELY - JD EUROPA","EX2 PRO","MIRIAM MARTA DAMACENA","CINZA","MAIRIPORA","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 PRO","CAIO VINICIUS ALMEIDA SIQUEIRA","BRANCO","SAO PAULO","SP",123800.0],
+            ["GEELY - JD EUROPA","EX2 MAX","CARLOS HENRIQUE ULIANA JUNIOR","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","JOAO WILLIAN VESCO","CINZA","MONTE MOR","SP",123800.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","JONAS ROBERTO LOPES NOGUEIRA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","BRANCO","HORTOLANDIA","SP",122800.0],
+            ["GEELY - CAMPINAS","EX5 MAX","JOAO WILLIAN VESCO","CINZA","CAMPINAS","SP",231219.2],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","VERDE PISTACHIO","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","WELLINGTON JOSE POSSATTI","CINZA","CAMPINAS","SP",119990.0],
+            ["GEELY - CAMPINAS","EX2 PRO","RODRIGO MONTEAGUDO","PRATA","CAMPINAS","SP",119990.0],
+            ["GEELY - GASTAO MATRIZ","EX2 MAX","CAIO VINICIUS ALMEIDA SIQUEIRA","VERDE PISTACHIO","SAO PAULO","SP",136800.0],
+            ["GEELY - CAMPINAS","EX2 MAX","JOAO WILLIAN VESCO","CINZA","INDAIATUBA","SP",136800.0]
+        ];
+
+        // ---------- UTIL ----------
+        const data = rawData.map(row => ({
+            loja: row[0].trim(),
+            modelo: row[1].trim(),
+            vendedor: row[2].trim(),
+            cor: row[3].trim(),
+            cidade: row[4].trim(),
+            estado: row[5].trim(),
+            valor: row[6]
+        }));
+
+        // extrair valores únicos para filtros
+        const lojas = [...new Set(data.map(d => d.loja))].sort();
+        const cores = [...new Set(data.map(d => d.cor))].sort();
+        const vendedores = [...new Set(data.map(d => d.vendedor))].sort();
+
+        // preencher selects
+        function populateSelect(id, values, defaultValue) {
+            const sel = document.getElementById(id);
+            sel.innerHTML = `<option value="${defaultValue}">${defaultValue}</option>`;
+            values.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                sel.appendChild(opt);
+            });
+        }
+        populateSelect('filtroLoja', lojas, 'Todas');
+        populateSelect('filtroCor', cores, 'Todas');
+        populateSelect('filtroVendedor', vendedores, 'Todos');
+
+        // referências gráficos
+        let chartModelo, chartLoja, chartVendedor;
+
+        function buildCharts(filtered) {
+            // KPI
+            const totalVendas = filtered.reduce((sum, d) => sum + d.valor, 0);
+            const unidades = filtered.length;
+            const ticket = unidades > 0 ? totalVendas / unidades : 0;
+            const vendedoresUnicos = new Set(filtered.map(d => d.vendedor)).size;
+
+            document.getElementById('kpiFaturamento').textContent = 
+                totalVendas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('kpiUnidades').textContent = unidades;
+            document.getElementById('kpiTicket').textContent = 
+                ticket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('kpiVendedores').textContent = vendedoresUnicos;
+
+            // agregações
+            function groupBy(arr, key) {
+                const map = new Map();
+                arr.forEach(d => {
+                    const k = d[key];
+                    map.set(k, (map.get(k) || 0) + d.valor);
+                });
+                return { labels: [...map.keys()], values: [...map.values()] };
+            }
+            function groupByCount(arr, key) {
+                const map = new Map();
+                arr.forEach(d => {
+                    const k = d[key];
+                    map.set(k, (map.get(k) || 0) + 1);
+                });
+                return { labels: [...map.keys()], values: [...map.values()] };
+            }
+
+            // Modelo (valor)
+            const modeloData = groupBy(filtered, 'modelo');
+            // Loja (contagem)
+            const lojaData = groupByCount(filtered, 'loja');
+            // Vendedor (valor)
+            const vendedorData = groupBy(filtered, 'vendedor');
+
+            // destruir gráficos antigos
+            if (chartModelo) chartModelo.destroy();
+            if (chartLoja) chartLoja.destroy();
+            if (chartVendedor) chartVendedor.destroy();
+
+            // Chart Modelo (barras)
+            const ctx1 = document.getElementById('chartModelo').getContext('2d');
+            chartModelo = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: modeloData.labels,
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: modeloData.values,
+                        backgroundColor: '#2a7de1',
+                        borderRadius: 6,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // Chart Loja (pizza)
+            const ctx2 = document.getElementById('chartLoja').getContext('2d');
+            chartLoja = new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: lojaData.labels,
+                    datasets: [{
+                        data: lojaData.values,
+                        backgroundColor: ['#2a7de1','#f9a03f','#28a745','#dc3545','#6f42c1','#fd7e14']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            // Chart Vendedor (barras horizontais)
+            const ctx3 = document.getElementById('chartVendedor').getContext('2d');
+            chartVendedor = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: vendedorData.labels,
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: vendedorData.values,
+                        backgroundColor: '#28a745',
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // filtrar e atualizar
+        function updateDashboard() {
+            const lojaF = document.getElementById('filtroLoja').value;
+            const corF = document.getElementById('filtroCor').value;
+            const vendF = document.getElementById('filtroVendedor').value;
+
+            let filtered = data.filter(d => {
+                return (lojaF === 'Todas' || d.loja === lojaF) &&
+                       (corF === 'Todas' || d.cor === corF) &&
+                       (vendF === 'Todos' || d.vendedor === vendF);
+            });
+            buildCharts(filtered);
+        }
+
+        // eventos
+        document.getElementById('filtroLoja').addEventListener('change', updateDashboard);
+        document.getElementById('filtroCor').addEventListener('change', updateDashboard);
+        document.getElementById('filtroVendedor').addEventListener('change', updateDashboard);
+
+        // inicializar
+        updateDashboard();
+
+    })();
+</script>
+</body>
+</html>
